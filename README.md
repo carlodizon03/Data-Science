@@ -1,4 +1,4 @@
 # Data-Science
  
  
- -plan to convert to ipynb when done
+ *plan to convert to ipynb when done

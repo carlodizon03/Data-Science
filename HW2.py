@@ -97,3 +97,28 @@ print("sum_views_entropy = {0}".format(sum_views_entropy))
 print("information gain = {0}-{1}".format(entropy_target_attr_category_id,sum_views_entropy))
 information_gain = entropy_target_attr_category_id-sum_views_entropy
 print("information gain = {0})".format(information_gain))
+
+
+
+
+ct2 = pd.crosstab(new_df['likes'],new_df['category_id'])
+
+num_likes_labels = max(ct2.count())
+likes_level_Pds = []
+for likes_label in range(num_likes_labels):
+    temp = []
+    for label,content in ct2.iteritems():
+        temp.append(content[likes_label]/len(pd_target_attr_category_id))
+    likes_level_Pds.append(temp)
+entropy_category_vs_likes = []
+for arr in likes_level_Pds:
+    entropy_category_vs_likes.append(entropy(arr,base=2))
+
+print(entropy_category_vs_likes)
+likes_levels = Counter(new_df['likes'])
+sum_likes_entropy  = 0
+idx = 0
+for key,val in likes_levels.items():
+    sum_likes_entropy = sum_likes_entropy+(val/10)*entropy_category_vs_likes[idx]
+information_gain = entropy_target_attr_category_id-sum_likes_entropy
+print(information_gain)

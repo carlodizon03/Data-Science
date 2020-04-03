@@ -7,62 +7,29 @@ from collections import  Counter
 from scipy.stats import entropy
 data = pd.read_csv('Data/USvideos.csv')
 
-#print(data)
-
-#print(data.dtypes)
-
-#print(data.head(10))
-
-#print(data.tail(3))
-
-#print(data.index)
-
-#print(data.columns)
-
-#print(data.to_numpy())
-
-#print(data.describe())
-
-#print(data.T)
-
-#print(data['video_id'])
-
-#print(data['trending_date'])
-
-#rows selection
-#print(data[0:2])
-#pd.set_option('max_rows',5)
-#pd.set_option('colheader_justify','left')
-#pd.set_option('column_space',15)
-#pd.set_option('display.expand_frame_repr', False)
 
 
 samples = data.sample(n=10)
-#print(samples)
-#print(samples.dtypes)
+
 
 new_df = pd.DataFrame(samples, columns = ['views','likes','comments_disabled','ratings_disabled','category_id'])
 print(new_df)
 
 with open('Data/US_category_id.json') as f:
     data = json.load(f)
-    #print(data['items'][0])
-    #print("Total number of categories: {0}".format(len(data['items'])))
-
+  
     categories = {}
     for item in data['items']:
         categories[item['id']] = item['snippet']['title']
-        #categories.append(item['snippet']['title'])
 
 
-#pprint.pprint(categories)
 
 num_attrib = pd.DataFrame(new_df, columns = ['views', 'likes'])
 
 print(num_attrib.corr(method = 'pearson'))
 
 
-crosstab = pd.crosstab(new_df['comments_disabled'],new_df['category_id'])
+crosstab = pd.crosstab(new_df['comments_disabled'],new_df['ratings_disabled'])
 print(crosstab)
 chi2,p_value,dof,freqs = stats.chi2_contingency(crosstab)
 print(chi2)

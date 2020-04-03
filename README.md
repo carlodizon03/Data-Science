@@ -1,4 +1,3 @@
 # Data-Science
  
- 
- *plan to convert to ipynb when done
+ This will be my repository for data mining or data science projects

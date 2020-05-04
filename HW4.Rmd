@@ -1,9 +1,20 @@
-Homework #4
+---
+title: "Homework 4"
+author: "Carlo D. Pastoral"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+# Homework 4
 
 
-- In this homework, I am going to use the dataset of Youtube Trending Videos in United States and cluster the data using Kmeans, Gower Distance and PAM for Kmedoid.
-- First I will access the CSV file, get a random 50 samples, and normalize the attributes that has too sparse values.
-- I will also make a separate container for Kmean and Gower+PAM
+> Data Preparation
+* In this homework, I am going to use the dataset of Youtube Trending Videos in United States and cluster the data using Kmeans, Gower Distance and PAM for Kmedoid.
+* First I will access the CSV file, get a random 50 samples, and normalize the attributes that has too sparse values.
+* I will also make a separate container for Kmean and Gower+PAM
 
 ```{r}
 
@@ -33,30 +44,59 @@ ds$comment_count <- normalized(ds$comment_count)
 ds.toGowerCluster <-  ds[,c("views","likes","dislikes","comment_count","category_id")]
 ```
 
+> ENTROPY
+* Here, I want to first calculate the entropy of each attribute to know how diverese my data is.
+* This will be my reference on the following observations.
 
-- I created a container for PAM called "ds.toGowerCluster" with all the attributes except the "video_id"
-- On the following cells and process, I will treat the "category_id" as the target attribute, beacuse it is the most relevant attribute that can be described by the knowledge from other attributes such as "views" and "likes". 
+```{r}
+#compute Shannon entropy
+entropy <- function(target) {
+  freq <- table(target)/length(target)
+  # vectorize
+  vec <- as.data.frame(freq)[,2]
+  #drop 0 to avoid NaN resulting from log2
+  vec<-vec[vec>0]
+  #compute entropy
+  -sum(vec * log2(vec))
+}
 
-- For the next step, I will apply a Gower Distance function to get the distance matrix of my dataframe.
-- To do that, I will use the "daisy" funtion of "cluster" library
-- Then I will convert it to matrix form and save to another container
+print(paste0("video_id Entropy: ",entropy(ds$video_id)))
+print(paste0("Views Entropy: ",entropy(ds$views)))
+print(paste0("likes Entropy: ",entropy(ds$likes)))
+print(paste0("dislikes Entropy: ",entropy(ds$dislikes)))
+print(paste0("comment_count Entropy: ",entropy(ds$comment_count)))
+print(paste0("category_id Entropy: ",entropy(ds$category_id)))
+print(paste0("trending_date Entropy: ",entropy(ds$trending_date)))
+
+```
+
+
+> Gower Distance Matrix
+* I created a container for PAM called "ds.toGowerCluster" with all the attributes except the "video_id"
+* On the following cells and process, I will treat the "category_id" as the target attribute, beacuse it is the most relevant attribute that can be described by the knowledge from other attributes such as "views" and "likes". 
+* For the next step, I will apply a Gower Distance function to get the distance matrix of my dataframe.
+* To do that, I will use the "daisy" funtion of "cluster" library
+* Then I will convert it to matrix form and save to another container
+
 ```{r}
 library("cluster")
 gower_dist <- daisy(ds.toGowerCluster, metric="gower")
 distance_matrix <- as.matrix(gower_dist)
 ```
-
-- Now that I have a distance matrix, I can use this to see the most similar pair for all attributes.
+> Most Simillar Pair
+* Now that I have a distance matrix, I can use this to see the most similar pair for all attributes.
 
 ```{r}
 # Output most similar pair
 ds[which(distance_matrix == min(distance_matrix[distance_matrix != min(distance_matrix)]),arr.ind = TRUE)[1, ], ]
 ```
+>
+* The similarity of the two rows in the output table is too obvious, firstly by looking at the video_id.
+* However, this can only mean that this video is the only one that became trending twice. 
 
-- The similarity of the two rows in the output table is too obvious, firstly by looking at the video_id.
-- However, this can only mean that this video is the only one that became trending twice. 
+> Most Dissimilar Pair
+* Now, I will try to check the most dissimilar pair. 
 
-- Now, I will try to check the most dissimilar pair. 
 ```{r}
 # Output most dissimilar pair
 ds[
@@ -64,21 +104,24 @@ ds[
         arr.ind = TRUE)[1, ], ]
 
 ```
-- This result is ambiguous, first is that because they cannot mean that the two videos has the lowest and the highest attribute values that made them most dissimilar. 
-- But it can also mean that in the average over all their attributes, they have the farthest distance. 
+>
+* This result is ambiguous, first is that because they cannot mean that the two videos has the lowest and the highest attribute values that made them most dissimilar. 
+* But it can also mean that in the average over all their attributes, they have the farthest distance. 
 
 
-
-- I will now make a cluster out of this distance matrix. 
-- But first thing, I wanna know what is the optimal number of k clusters that I can use.
+> K Cluster
+* I will now make a cluster out of this distance matrix. 
+* But first thing, I wanna know what is the optimal number of k clusters that I can use.
 
 ```{r}
+library(factoextra)
 fviz_nbclust(ds.toGowerCluster, pam, method="silhouette")+theme_classic()
 fviz_nbclust(ds.toGowerCluster, pam, method="wss")+theme_classic()
 ```
 
-- By looking at these two graphs, they suggests that the most optimal number of k clusters can be from the range of 2 to 4.
-- I will use 3 for my application.
+> KMEDOIDS
+* By looking at these two graphs, they suggests that the most optimal number of k clusters can be from the range of 2 to 4.
+* I will use 3 for my application.
 
 ```{r}
 
@@ -87,40 +130,43 @@ fviz_cluster(pm,distance_matrix)
 print(pm)
 
 ```
-- Here, we can see that PAM algorithm clustered my data well. 
-- We can also notice the distance between the "14" and "17". "14" lies on the top left corner and in the 3rd cluster while "17" lies on the left most that is included in the 1st cluster.
-- This validates the disimilarity of the two videos.
+>
+* Here, we can see that PAM algorithm clustered my data well. 
+* We can also notice the distance between the "14" and "17". "14" lies on the top left corner and in the 3rd cluster while "17" lies on the left most that is included in the 1st cluster.
+* This validates the disimilarity of the two videos.
 
 
-- Next, I want to look where are the medoids of our clusters. 
-```{r}
-ds[pam_fit$medoids,]
-```
+> Cluster Interpretation
+* By comparing this result to the previous plot, it can be a little bit confusing because we can see that this medoids does not lie in the middle of each cluster. 
+* But if we look closely in the newmerical values and analyze the distances between these medoids, we can expect that these values clearly represents each cluster. 
+* To have a more detailed interpretation of the Cluseters, I will look at the summary of the PAM algorithm
+* From this result:
 
-- By comparing this result to the previous plot, it can be a little bit confusing because we can see that this medoids does not lie in the middle of each cluster. 
-- But if we look closely in the newmerical values and analyze the distances between these medoids, we can expect that these values clearly represents each cluster. 
-
-- To have a more detailed interpretation of the Cluseters, I will look at the summary of the PAM algorithm
-- From this result:
-
-  1) I can  say that the cluster 1 mainly contain those videos that has the lowest "views", "likes", "dislikes", and "comment_count" and by looking at the "category_id" values, I can say that these videos mostly came from different and non-frequent categories. However, these videos still became trending regardless of date.
+1. I can  say that the cluster 1 mainly contain those videos that has the lowest "views", "likes", "dislikes", and "comment_count" and by looking at the "category_id" values, I can say that these videos mostly came from different and non-frequent categories. However, these videos still became trending regardless of date.
  
-  2) In the 2nd cluster, I observed that the videos here has the middle values in terms of "views", "likes", "dislikes", and "comment_count" and it is also noticeable that the "category_id" became more frequent at 10.
+2. In the 2nd cluster, I observed that the videos here has the middle values in terms of "views", "likes", "dislikes", and "comment_count" and it is also noticeable that the "category_id" became more frequent at 10.
   
-  3) Lastly, the 3rd cluster seems to have the most trending videos with the highes values in the same attributes except with the "comment_count". Does it mean that, a video doesnt need high comment_count to be trending?. Final observation is that, in this cluster all videos has the "category_id" 10 which is the "Music" category.
+3. Lastly, the 3rd cluster seems to have the most trending videos with the highes values in the same attributes except with the "comment_count". Does it mean that, a video doesnt need high comment_count to be trending?. Final observation is that, in this cluster all videos has the "category_id" 10 which is the "Music" category.
   
   
   
 ```{r}
-pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
-pam_results <- ds %>%
+library(cluster)
+pam.fit <- pam(gower_dist, diss = TRUE, k = 3)
+pam.res <- ds %>%
   dplyr::select(-"video_id") %>%
-  mutate(cluster = pam_fit$clustering) %>%
+  mutate(cluster = pam.fit$clustering) %>%
   group_by(cluster) %>%
   do(the_summary = summary(.))
 
-pam_results$the_summary
+pam.res$the_summary
+
 ```
 
 
+> Medoids
+* Next, I want to look where are the medoids of our clusters. 
 
+```{r}
+ds[pam.fit$medoids,]
+```
